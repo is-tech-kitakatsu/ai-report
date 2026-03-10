@@ -1,0 +1,35 @@
+name: manifest.json を自動更新
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '20[0-9][0-9]-[0-9][0-9]-[0-9][0-9].md'
+
+jobs:
+  update-manifest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: manifest.json を生成
+        run: |
+          python3 -c "
+          import os, json, re
+          files = [f[:-3] for f in os.listdir('.') if re.match(r'^\d{4}-\d{2}-\d{2}\.md$', f)]
+          files.sort(reverse=True)
+          with open('manifest.json', 'w') as f:
+              json.dump(files, f, indent=2, ensure_ascii=False)
+              f.write('\n')
+          print('生成完了:', files)
+          "
+
+      - name: manifest.json をコミット
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git diff --staged --quiet || git commit -m "chore: manifest.json を更新 [skip ci]"
+          git push

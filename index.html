@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Daily News</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+      background: #f0f2f5;
+      color: #1a1a1a;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #0f172a;
+      color: white;
+      padding: 16px 24px;
+    }
+    header h1 { font-size: 18px; font-weight: 700; }
+    header .subtitle { font-size: 12px; color: #94a3b8; margin-top: 3px; }
+
+    .container {
+      display: flex;
+      max-width: 1100px;
+      margin: 24px auto;
+      gap: 20px;
+      padding: 0 16px;
+      align-items: flex-start;
+    }
+
+    /* サイドバー */
+    .sidebar { width: 175px; flex-shrink: 0; position: sticky; top: 16px; }
+    .sidebar-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #64748b;
+      margin-bottom: 8px;
+      padding-left: 2px;
+    }
+    .date-list {
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    .date-item {
+      padding: 10px 12px;
+      cursor: pointer;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.1s;
+      color: #374151;
+    }
+    .date-item:last-child { border-bottom: none; }
+    .date-item:hover { background: #f8fafc; }
+    .date-item.active { background: #eff6ff; color: #1d4ed8; font-weight: 600; }
+    .badge-kyou {
+      font-size: 9px;
+      font-weight: 700;
+      background: #1d4ed8;
+      color: white;
+      padding: 1px 5px;
+      border-radius: 8px;
+    }
+
+    /* コンテンツエリア */
+    .content { flex: 1; min-width: 0; }
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+
+    /* マークダウン内スタイル */
+    .card h1 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #0f172a;
+    }
+    .card blockquote {
+      border-left: none;
+      padding: 0;
+      margin: 0 0 20px 0;
+      font-size: 13px;
+      color: #64748b;
+    }
+    .card blockquote p { margin: 2px 0; }
+
+    .card table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+    .card th {
+      background: #f8fafc;
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .card td {
+      padding: 14px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: top;
+      line-height: 1.65;
+    }
+    .card tr:last-child td { border-bottom: none; }
+    .card tr:hover td { background: #fafafa; }
+    .card td:first-child a {
+      color: #1d4ed8;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .card td:first-child a:hover { text-decoration: underline; }
+    .card td:nth-child(3) { color: #475569; font-size: 13px; }
+
+    .category {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .card hr { display: none; }
+    .card > p:last-child { font-size: 12px; color: #94a3b8; margin-top: 16px; }
+
+    .status {
+      text-align: center;
+      padding: 48px;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
+    @media (max-width: 600px) {
+      .container { flex-direction: column; }
+      .sidebar { width: 100%; position: static; }
+      .date-list { display: flex; flex-wrap: wrap; }
+      .date-item { border-right: 1px solid #f1f5f9; border-bottom: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>AI Daily News</h1>
+    <div class="subtitle">社内向け AI 最新情報まとめ</div>
+  </header>
+
+  <div class="container">
+    <aside class="sidebar">
+      <div class="sidebar-label">アーカイブ</div>
+      <div class="date-list" id="dateList">
+        <div class="status">読込中...</div>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="card" id="contentCard">
+        <div class="status">左の日付を選んでください</div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+  <script>
+    const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD形式
+
+    const categoryColors = {
+      'ツール':       { bg: '#f0fdf4', color: '#166534' },
+      'インフラ':     { bg: '#eff6ff', color: '#1e40af' },
+      'モデル':       { bg: '#fdf4ff', color: '#7e22ce' },
+      '研究':         { bg: '#fefce8', color: '#854d0e' },
+      'ビジネス':     { bg: '#fff7ed', color: '#9a3412' },
+      'セキュリティ': { bg: '#fef2f2', color: '#991b1b' },
+    };
+
+    async function loadManifest() {
+      const res = await fetch('manifest.json');
+      if (!res.ok) throw new Error('manifest.json が見つかりません');
+      return await res.json();
+    }
+
+    async function loadMarkdown(date) {
+      const res = await fetch(`${date}.md`);
+      if (!res.ok) throw new Error(`${date}.md が見つかりません`);
+      return await res.text();
+    }
+
+    function renderSidebar(dates, activeDate) {
+      const list = document.getElementById('dateList');
+      if (dates.length === 0) {
+        list.innerHTML = '<div class="status">ファイルなし</div>';
+        return;
+      }
+      list.innerHTML = dates.map(date => {
+        const isToday = date === today;
+        const isActive = date === activeDate;
+        return `<div class="date-item ${isActive ? 'active' : ''}" data-date="${date}" onclick="selectDate('${date}')">
+          ${date}${isToday ? '<span class="badge-kyou">今日</span>' : ''}
+        </div>`;
+      }).join('');
+    }
+
+    async function selectDate(date) {
+      document.querySelectorAll('.date-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.date === date);
+      });
+
+      const card = document.getElementById('contentCard');
+      card.innerHTML = '<div class="status">読込中...</div>';
+
+      const text = await loadMarkdown(date);
+      card.innerHTML = marked.parse(text);
+
+      // カテゴリ列（2列目）をバッジ表示に変換
+      card.querySelectorAll('table tr td:nth-child(2)').forEach(td => {
+        const label = td.textContent.replace(/[\[\]]/g, '').trim();
+        const colors = categoryColors[label] || { bg: '#f1f5f9', color: '#475569' };
+        td.innerHTML = `<span class="category" style="background:${colors.bg};color:${colors.color}">${label}</span>`;
+      });
+
+      // リンクは新しいタブで開く
+      card.querySelectorAll('a').forEach(a => {
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+      });
+    }
+
+    async function init() {
+      const dates = await loadManifest();
+      const latest = dates[0];
+      renderSidebar(dates, latest);
+      if (latest) await selectDate(latest);
+    }
+
+    init().catch(err => {
+      document.getElementById('dateList').innerHTML = `<div class="status">${err.message}</div>`;
+      document.getElementById('contentCard').innerHTML = `<div class="status">${err.message}</div>`;
+    });
+  </script>
+
+</body>
+</html>
