@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '20[0-9][0-9]-[0-9][0-9]-[0-9][0-9].md'
+      - 'articles/20[0-9][0-9]-[0-9][0-9]-[0-9][0-9].md'
 
 jobs:
   update-manifest:
@@ -18,7 +18,7 @@ jobs:
         run: |
           python3 -c "
           import os, json, re
-          files = [f[:-3] for f in os.listdir('.') if re.match(r'^\d{4}-\d{2}-\d{2}\.md$', f)]
+          files = [f[:-3] for f in os.listdir('articles') if re.match(r'^\d{4}-\d{2}-\d{2}\.md$', f)]
           files.sort(reverse=True)
           with open('manifest.json', 'w') as f:
               json.dump(files, f, indent=2, ensure_ascii=False)
