@@ -254,7 +254,7 @@
     }
 
     async function loadMarkdown(date) {
-      const res = await fetch(`${date}.md`);
+      const res = await fetch(`articles/${date}.md`);
       if (!res.ok) throw new Error(`${date}.md が見つかりません`);
       return await res.text();
     }
