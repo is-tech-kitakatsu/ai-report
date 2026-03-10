@@ -179,8 +179,63 @@
     </main>
   </div>
 
+  <!-- パスワード画面 -->
+  <div id="passwordOverlay" style="
+    display:none; position:fixed; inset:0; background:#0f172a;
+    z-index:9999; align-items:center; justify-content:center;
+  ">
+    <div style="background:white; border-radius:12px; padding:36px 32px; width:320px; text-align:center;">
+      <div style="font-size:16px; font-weight:700; margin-bottom:6px;">AI Daily News</div>
+      <div style="font-size:13px; color:#64748b; margin-bottom:20px;">パスワードを入力してください</div>
+      <input id="passwordInput" type="password" placeholder="パスワード" style="
+        width:100%; padding:10px 12px; border:1px solid #e2e8f0; border-radius:6px;
+        font-size:14px; outline:none; margin-bottom:12px;
+      ">
+      <button onclick="checkPassword()" style="
+        width:100%; padding:10px; background:#1d4ed8; color:white;
+        border:none; border-radius:6px; font-size:14px; cursor:pointer; font-weight:600;
+      ">入る</button>
+      <div id="passwordError" style="font-size:12px; color:#ef4444; margin-top:10px; display:none;">
+        パスワードが違います
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
   <script>
+    // ---- パスワード設定（ここを変更してください）----
+    const SITE_PASSWORD = 'ainews2024';
+    // -------------------------------------------------
+
+    const SESSION_KEY = 'ai_news_auth';
+
+    function checkPassword() {
+      const input = document.getElementById('passwordInput').value;
+      if (input === SITE_PASSWORD) {
+        sessionStorage.setItem(SESSION_KEY, '1');
+        document.getElementById('passwordOverlay').style.display = 'none';
+        init();
+      } else {
+        document.getElementById('passwordError').style.display = 'block';
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordInput').focus();
+      }
+    }
+
+    // Enterキーでも送信
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('passwordInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') checkPassword();
+      });
+      if (!sessionStorage.getItem(SESSION_KEY)) {
+        const overlay = document.getElementById('passwordOverlay');
+        overlay.style.display = 'flex';
+        document.getElementById('passwordInput').focus();
+      } else {
+        init();
+      }
+    });
+
     const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD形式
 
     const categoryColors = {
@@ -245,16 +300,16 @@
     }
 
     async function init() {
-      const dates = await loadManifest();
+      const dates = await loadManifest().catch(err => {
+        document.getElementById('dateList').innerHTML = `<div class="status">${err.message}</div>`;
+        document.getElementById('contentCard').innerHTML = `<div class="status">${err.message}</div>`;
+        return [];
+      });
+      if (!dates.length) return;
       const latest = dates[0];
       renderSidebar(dates, latest);
-      if (latest) await selectDate(latest);
+      await selectDate(latest);
     }
-
-    init().catch(err => {
-      document.getElementById('dateList').innerHTML = `<div class="status">${err.message}</div>`;
-      document.getElementById('contentCard').innerHTML = `<div class="status">${err.message}</div>`;
-    });
   </script>
 
 </body>
